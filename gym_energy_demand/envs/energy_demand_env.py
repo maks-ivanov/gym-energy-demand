@@ -1,11 +1,20 @@
+import gym
+from gym import error, spaces, util
+import numpy as np
+
 class EnergyDemandEnv(gym.Env):
     metadata = {}
 
-    def __init__(self):
+    def __init__(self,
+                 max_charge_rate=1.0,
+                 max_discharge_rate=-1.0,
+                 battery_capacity=5,
+                 load_curve=np.random.normal(loc=10, scale=3, size=30)):
         # define state and action sets here
-        # define initial load curve here
-        pass
-
+        self.action_space = spaces.Box(low=max_discharge_rate, high=max_charge_rate, shape=(1,))
+        self.load_curve = np.clip(load_curve, 0, 2**32) # load is non-negative
+        self.observation_space = spaces.Box(low=np.zeros(2), high=np.array([2**32, battery_capacity]), shape=(1,))
+    
     def _step(self, action):
         """
 
@@ -35,6 +44,7 @@ class EnergyDemandEnv(gym.Env):
                  However, official evaluations of your agent are not allowed to
                  use this for learning.
         """
+        assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action))
         self._take_action(action)
         self.status = self.env.step()
         reward = self._get_reward()
