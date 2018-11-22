@@ -9,7 +9,9 @@ class EnergyDemandEnv(gym.Env):
                  max_charge_rate=1.0,
                  max_discharge_rate=-1.0,
                  battery_capacity=5.0,
-                 load_curve=np.random.normal(loc=10, scale=3, size=2880), cost=1.0, peak_cost=1500.0, ):
+                 load_curve=np.random.normal(loc=10, scale=3, size=2880),
+                 cost=1.0,
+                 peak_cost=1500.0):
         # define state and action sets here
         assert max_charge_rate >= 0, "maximum charge rate should be non-negative"
         assert max_discharge_rate <= 0, "maximum charge rate should be non-positive"
@@ -20,7 +22,7 @@ class EnergyDemandEnv(gym.Env):
         self._usage_curve = np.clip(load_curve, 0, 2**32) # energy used at each t, non-negative, stays unmodified
         self._demand_curve = np.copy(self._usage_curve) # energy bought from the power plant at each t, modified by agent actions
 
-        self.observation_space = spaces.Box(low=np.zeros(2), high=np.array([2**32, battery_capacity]), shape=(1,))
+        self.observation_space = spaces.Box(low=np.zeros(2), high=np.array([2**32, battery_capacity]))
         try:
             self._max_steps = self._usage_curve.shape[0]
         except:
