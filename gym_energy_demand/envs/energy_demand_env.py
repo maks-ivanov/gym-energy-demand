@@ -97,5 +97,5 @@ class EnergyDemandEnv(gym.Env):
         raise NotImplementedError()
 
     def _get_reward(self):
-        return -np.max(self._demand_curve[:self._t + 1]) * self.peak_cost - 15 * self._demand_curve[self._t] * self.cost
+        return -(np.max(self._demand_curve[:self._t + 1]) * self.peak_cost + 15 * self._demand_curve[self._t] * self.cost)
 
