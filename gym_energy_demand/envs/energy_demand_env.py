@@ -25,7 +25,7 @@ class EnergyDemandEnv(gym.Env):
         self.observation_space = spaces.Box(low=np.zeros(2), high=np.array([2**32, battery_capacity]))
         try:
             self._max_steps = self._usage_curve.shape[0]
-        except:
+        except AttributeError:
             self._max_steps = len(self._usage_curve)
         self._peak_cost = peak_cost
         self._cost = cost
