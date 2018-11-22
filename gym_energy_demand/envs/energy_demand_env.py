@@ -29,6 +29,7 @@ class EnergyDemandEnv(gym.Env):
             self._max_steps = len(self._usage_curve)
         self._peak_cost = peak_cost
         self._cost = cost
+        self._t = 0
     
     def step(self, action):
         """
@@ -85,7 +86,7 @@ class EnergyDemandEnv(gym.Env):
 
         return ob, reward, episode_over, {}
 
-    def _reset(self):
+    def reset(self):
         self._t = 0
         self._battery_charge = 0
         # do something smarter with load curve here
