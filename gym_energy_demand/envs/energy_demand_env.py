@@ -8,14 +8,27 @@ class EnergyDemandEnv(gym.Env):
     def __init__(self,
                  max_charge_rate=1.0,
                  max_discharge_rate=-1.0,
-                 battery_capacity=5,
-                 load_curve=np.random.normal(loc=10, scale=3, size=30)):
+                 battery_capacity=5.0,
+                 load_curve=np.random.normal(loc=10, scale=3, size=2880), cost=1.0, peak_cost=1500.0, ):
         # define state and action sets here
+        assert max_charge_rate >= 0, "maximum charge rate should be non-negative"
+        assert max_discharge_rate <= 0, "maximum charge rate should be non-positive"
+        assert battery_capacity >= 0, "maximum charge rate should be non-positive"
+
         self.action_space = spaces.Box(low=max_discharge_rate, high=max_charge_rate, shape=(1,))
-        self.load_curve = np.clip(load_curve, 0, 2**32) # load is non-negative
+
+        self._usage_curve = np.clip(load_curve, 0, 2**32) # energy used, non-negative, stays unmodified
+        self._demand_curve = np.copy(self._usage_curve) # energy bought from the power plant
+
         self.observation_space = spaces.Box(low=np.zeros(2), high=np.array([2**32, battery_capacity]), shape=(1,))
+        try:
+            self._max_steps = self._usage_curve.shape[0]
+        except:
+            self._max_steps = len(self._usage_curve)
+        self._peak_cost = peak_cost
+        self._cost = cost
     
-    def _step(self, action):
+    def step(self, action):
         """
 
         Parameters
@@ -45,27 +58,42 @@ class EnergyDemandEnv(gym.Env):
                  use this for learning.
         """
         assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action))
-        self._take_action(action)
-        self.status = self.env.step()
+
+        if action < 0: # discharge battery
+            if self._battery_charge > 0: 
+                discharge = min(abs(action), self._battery_charge)
+                self._demand_curve[self._t + 1] -= discharge
+                self._battery_charge -= discharge
+        elif action > 0: # charge battery
+            if self._battery_charge < self._battery_capacity:
+                charge = min(action, self._battery_capacity - self._battery_charge)
+                self._demand_curve[self._t + 1] += charge
+                self._battery_charge += charge
+        else: # do nothing
+            pass
+
         reward = self._get_reward()
-        ob = self.env.getState()
-        episode_over = self.status != hfo_py.IN_GAME
+        self._t += 1
+        episode_over = (self._t ==  (self._max_steps - 1))
+
+        if not episode_over:
+            ob = np.array([self._usage_curve[self._t], self._battery_charge])
+        else:
+            ob = np.array([self._usage_curve[self._t - 1], self._battery_charge])
+
         return ob, reward, episode_over, {}
 
     def _reset(self):
-        pass
+        self._t = 0
+        self._battery_charge = 0
+        # do something smarter with load curve here
+        self._demand_curve = np.copy(self._usage_curve)
+        return np.array([self._usage_curve[self._t], self._battery_charge])
+        
 
     def _render(self, mode='human', close=False):
         raise NotImplementedError()
 
-    def _take_action(self, action):
-        pass
-
     def _get_reward(self):
-        """ Reward is given for XY. """
-        if self.status == FOOBAR:
-            return 1
-        elif self.status == ABC:
-            return self.somestate ** 2
-        else:
-            return 0
+        return -np.max(self._demand_curve[:self.t + 1]) * self.peak_cost # - np.trapz(self._demand_curve[:self.t + 1], dx=15) * self.cost
+
