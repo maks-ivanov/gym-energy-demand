@@ -1,5 +1,5 @@
 import gym
-from gym import error, spaces, util
+from gym import error, spaces
 import numpy as np
 
 class EnergyDemandEnv(gym.Env):
@@ -30,6 +30,7 @@ class EnergyDemandEnv(gym.Env):
         self._peak_cost = peak_cost
         self._cost = cost
         self._t = 0
+        self._battery_capacity = battery_capacity
     
     def step(self, action):
         """
@@ -65,14 +66,14 @@ class EnergyDemandEnv(gym.Env):
         if action < 0: # discharge battery
             if self._battery_charge > 0: 
                 discharge = min(abs(action), self._battery_charge)
-                self._demand_curve[self._t + 1] -= discharge
+                self._demand_curve[self._t] -= discharge
                 self._battery_charge -= discharge
         elif action > 0: # charge battery
             if self._battery_charge < self._battery_capacity:
                 charge = min(action, self._battery_capacity - self._battery_charge)
-                self._demand_curve[self._t + 1] += charge
+                self._demand_curve[self._t] += charge
                 self._battery_charge += charge
-        else: # do nothing
+        else: # do nothing (for clarity)
             pass
 
         reward = self._get_reward()
@@ -84,7 +85,8 @@ class EnergyDemandEnv(gym.Env):
         else:
             ob = np.array([self._usage_curve[self._t - 1], self._battery_charge])
 
-        return ob, reward, episode_over, {}
+        return ob, reward, episode_over, {'demand curve': self._demand_curve[:self._t],
+                                          'usage curve': self._usage_curve[:self._t]}
 
     def reset(self):
         self._t = 0
@@ -98,5 +100,5 @@ class EnergyDemandEnv(gym.Env):
         raise NotImplementedError()
 
     def _get_reward(self):
-        return -(np.max(self._demand_curve[:self._t + 1]) * self.peak_cost + 15 * self._demand_curve[self._t] * self.cost)
+        return -np.max(self._demand_curve[:self._t + 1]) * self._peak_cost
 
