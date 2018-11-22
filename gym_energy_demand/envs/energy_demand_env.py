@@ -13,7 +13,7 @@ class EnergyDemandEnv(gym.Env):
         # define state and action sets here
         assert max_charge_rate >= 0, "maximum charge rate should be non-negative"
         assert max_discharge_rate <= 0, "maximum charge rate should be non-positive"
-        assert battery_capacity >= 0, "maximum charge rate should be non-positive"
+        assert battery_capacity >= 0, "battery capacity should be non-negative"
 
         self.action_space = spaces.Box(low=max_discharge_rate, high=max_charge_rate, shape=(1,))
 
