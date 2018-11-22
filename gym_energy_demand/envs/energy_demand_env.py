@@ -17,8 +17,8 @@ class EnergyDemandEnv(gym.Env):
 
         self.action_space = spaces.Box(low=max_discharge_rate, high=max_charge_rate, shape=(1,))
 
-        self._usage_curve = np.clip(load_curve, 0, 2**32) # energy used, non-negative, stays unmodified
-        self._demand_curve = np.copy(self._usage_curve) # energy bought from the power plant
+        self._usage_curve = np.clip(load_curve, 0, 2**32) # energy used at each t, non-negative, stays unmodified
+        self._demand_curve = np.copy(self._usage_curve) # energy bought from the power plant at each t, modified by agent actions
 
         self.observation_space = spaces.Box(low=np.zeros(2), high=np.array([2**32, battery_capacity]), shape=(1,))
         try:
